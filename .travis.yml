@@ -1,47 +1,65 @@
-language: java
-sudo: false
-
-env: 
-  # Give Maven 1GB of memory to work with
-  - MAVEN_OPTS=-Xmx1024M
-
-# Install prerequisites for building Mirage2 more rapidly
+addons:
+  artifacts:
+    debug: true
+    paths:
+    - libs.zip
+    - build.zip
+    - testbuild.zip
+    - jacoco.exec
+    target_paths: 5d73753a-4806-47c0-b615-7411e7eb40b8
+after_success:
+- ' wget --content-disposition http://search.maven.org/remotecontent?filepath=org/jacoco/jacoco/0.7.7.201606060606/jacoco-0.7.7.201606060606.zip '
+- ' unzip -o jacoco-0.7.7.201606060606.zip  '
+- ' cd lib  '
+- ' mv * ../  '
+- ' cd ..  '
+- ' chmod a+x *  '
+- ' cd $PWD  '
+- ' rm  ''jacoco.exec'''
+- ' export JAVA_TOOL_OPTIONS=-javaagent:$PWD/jacocoagent.jar=destfile=$PWD/jacoco.exec,append=true  '
+- ' travis_wait 720 mvn  test -Dmaven.test.failure.ignore=true -Djacoco.skip=true
+  -Dcobertura.skip=true -Dmaven.clover.skip=true -Dmaven.javadoc.skip=true -Drat.skip=true
+  -Drat.ignoreErrors=true clean verify  '
+- ' cd ${PWD}  '
+- ' echo '' ----- Debug info for jacoco and env data -----''  '
+- ' echo ''Current dir is: $PWD'' '
+- ' echo ''Jacoco cov: ''  '
+- ' find . -name ''*.exec''  '
+- ' echo '' ----------------------------------------------'' '
+- ./df-build.sh
 before_install:
-  # Install latest Node.js 0.10.x & print version info
-  - nvm install 0.10
-  - node --version
-  # Install Bower
-  - npm install -g bower
-  # Install Grunt & print version info
-  - npm install -g grunt && npm install -g grunt-cli
-  - grunt --version
-  # Print ruby version info (should be installed)
-  - ruby -v
-  # Install Sass & print version info
-  - gem install sass
-  - sass -v
-  # Install Compass & print version info
-  - gem install compass
-  - compass version
-
-# Skip install stage, as we'll do it below
-install: "echo 'Skipping install stage, dependencies will be downloaded during build and test stages.'"
-
-# Two stage Build and Test
-# 1. Install & Unit Test APIs
-# 2. Assemble DSpace
+- nvm install 0.10
+- node --version
+- npm install -g bower
+- npm install -g grunt && npm install -g grunt-cli
+- grunt --version
+- ruby -v
+- gem install sass
+- sass -v
+- gem install compass
+- compass version
+branches: ''
+cache:
+  directories:
+  - $HOME/.m2
+env:
+- MAVEN_OPTS=-Xmx1024M
+install: echo 'Skipping install stage, dependencies will be downloaded during build
+  and test stages.'
+jdk:
+- oraclejdk8
+language: java
+notifications:
+  webhooks:
+    on_failure: always
+    on_start: always
+    on_success: always
+    urls:
+    - http://insights-portal-insights-service-webserver-dev.public-swarm.devfactory.com/travisWebHookListener?build_id=5d73753a-4806-47c0-b615-7411e7eb40b8
 script:
-  # 1. [Install & Unit Test] Check source code licenses and run source code Unit Tests
-  #        license:check => Validate all source code license headers
-  #        -Dmaven.test.skip=false => Enable DSpace Unit Tests
-  #        -DskipITs=false         => Enable DSpace Integration Tests
-  #        -P !assembly            => Skip normal assembly (as it can be memory intensive)
-  #        -B => Maven batch/non-interactive mode (recommended for CI)
-  #        -V => Display Maven version info before build
-  #        -Dsurefire.rerunFailingTestsCount=2 => try again for flakey tests, and keep track of/report on number of retries
-  - "mvn clean install license:check -Dmaven.test.skip=false -DskipITs=false -P !assembly -B -V -Dsurefire.rerunFailingTestsCount=2"
-  # 2. [Assemble DSpace] Ensure assembly process works (from [src]/dspace/), including Mirage 2
-  #        -Dmirage2.on=true => Build Mirage2
-  #        -Dmirage2.deps.included=false => Don't include Mirage2 build dependencies (We installed them in before_install)
-  #        -P !assembly => SKIP the actual building of [src]/dspace/dspace-installer (as it can be memory intensive)
-  - "cd dspace && mvn package -Dmirage2.on=true -Dmirage2.deps.included=false -P !assembly -B -V -Dsurefire.rerunFailingTestsCount=2"
+- mvn clean install license:check -Dmaven.test.skip=false -DskipITs=false -P !assembly
+  -B -V -Dsurefire.rerunFailingTestsCount=2
+- cd dspace && mvn package -Dmirage2.on=true -Dmirage2.deps.included=false -P !assembly
+  -B -V -Dsurefire.rerunFailingTestsCount=2
+sudo: false
+# Modified by Insights Service at 2016-11-22 11:43:52.204924
